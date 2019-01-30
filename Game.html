@@ -1,0 +1,359 @@
+
+<head>
+	<title>vegeta Attack!</title>
+	<meta charset="UTF-8"> 
+	<h2>space - jump<h2>
+	<h2>F - fireballs<h2>
+</head>
+<body>
+<br>
+<canvas id="myCanvas" width="1000" height="500" style="background-color: #ccffff;"></canvas>
+
+<script type="text/javascript">
+
+function Sprite(x, y, image_url, update_method,model)
+{
+	this.x = x;
+	this.y = y;
+	this.model = model;
+	this.vert_velocity = -25.0;
+	this.image = new Image();
+	this.image.src = image_url;
+	this.update = update_method;
+	let spaceTouch = 0;
+	let prev_x = 0;
+	let prev_y = 0;
+	let moving = true;
+	let fire = true;
+	this.hit = false;
+	let countFireball = 0;
+	let countGoomba = 0;
+}
+
+Sprite.prototype.set_destination = function(x, y)
+{
+	this.dest_x = x;
+	this.dest_y = y;
+}
+
+Sprite.prototype.ignore_click = function(x, y)
+{
+}
+
+Sprite.prototype.move = function(dx, dy)
+{
+	this.dest_x = this.x + dx;
+	this.dest_y = this.y + dy;
+}
+Sprite.prototype.jump = function()
+{
+	this.vert_velocity -= 17;
+}
+
+Sprite.prototype.vegetaUpdate = function()
+{
+		 
+		this.vert_velocity += 1.9;   //those 2 lines 
+        this.y += this.vert_velocity;//simulate gravity
+        
+        if(this.y > 400)
+        {
+            this.vert_velocity = 0;
+            this.y = 400;
+			this.model.onGround = 0;
+        }
+		this.model.onGround++;
+		
+		for(let i = 2; i < this.model.sprites.length; i++)
+		{
+			let s = this.model.sprites[i];
+			if(this.didItCollide(this.x, this.y, 48,48,s.x,s.y,55,400))
+			{
+				
+				if(this.x + 48 >= s.x && this.prev_x + 48 < s.x )
+				 {
+					 this.x = s.x - 49;
+					 this.vert_velocity = 0;
+				 }
+				 else if(this.x <= s.x + 55 && this.prev_x  > s.x + 48)
+				 {  
+					 this.x = s.x+55;
+					 this.vert_velocity = 0;
+				 }
+				 else if(this.y >= s.y && this.prev_y < s.y) // if he crossed the top of the tube
+				 {
+					
+					this.y = s.y - 1 ;
+					 this.model.onGround = 0;
+					 this.vert_velocity = 0;
+					
+				 }
+				 else
+					 console.log("How did I get in here?");
+			}
+			
+		
+		
+		}
+}
+
+Sprite.prototype.goombaUpdate = function()
+{
+	if(this.moving)this.x+=5;
+	else this.x-=5;
+	
+		for(let i = 2; i < this.model.sprites.length; i++)
+		{
+			let s = this.model.sprites[i];
+			if(this.didItCollide(this.x, this.y, 48,48,s.x,s.y,55,400))
+			{
+				this.moving = !(this.moving);
+			}
+		}
+		
+		for(let i = 5; i < this.model.sprites.length; i++)
+		{
+			let s = this.model.sprites[i];
+			if(this.didItCollide(this.x, this.y, 48,48,s.x,s.y,55,400))
+			{
+				this.hit = true;
+				
+				
+			}
+		}
+		if(this.hit)this.countGoomba++;
+}
+
+Sprite.prototype.fireballUpdate = function()
+{
+		this.x+= 3;
+       
+        if(this.fire)
+        {
+            this.y-= 3;
+            if(this.y < 300)
+            {
+                this.fire = !(this.fire);
+            }
+           
+        }
+        else  
+        {
+            this.y+= 3; 
+            if(this.y > 400)
+            {
+               this.fire = !(this.fire);
+            }
+        }
+		this.countFireball++;
+		
+		
+}
+
+
+Sprite.prototype.sit_still = function()
+{
+}
+
+Sprite.prototype.didItCollide = function( x1,  y1,  w1,  h1,  x2,  y2,  w2,  h2) 
+	{
+ 
+		if(x1 + w1 < x2)
+        {
+            return false;
+        }   
+		if(x1 > x2 + w2)
+        {
+	
+            return false;
+        }
+       
+		if(y1 < y2)
+        {
+            return false;
+        }
+        if(y1 > y2 + h2) return false;
+		
+        return true;
+		
+	}
+
+
+
+
+
+
+
+function Model()
+{
+	this.sprites = [];
+	this.vegeta = new Sprite(50, 300,"S5.png", Sprite.prototype.vegetaUpdate,this);
+	this.sprites.push(this.vegeta);
+	this.goomba = new Sprite(300, 380,"gumba.png", Sprite.prototype.goombaUpdate,this);
+	this.sprites.push(this.goomba);
+	this.sprites.push(new Sprite(3000, 260, "tube.png", Sprite.prototype.sit_still));
+	this.sprites.push(new Sprite(200, 260, "tube.png", Sprite.prototype.sit_still));
+	this.sprites.push(new Sprite(500, 250, "tube.png", Sprite.prototype.sit_still));
+	
+	let onGround = 0;
+}
+
+Model.prototype.update = function()
+{
+	for(let i = 0; i < this.sprites.length; i++)
+	{
+		this.sprites[i].update();
+		
+		if(this.sprites[i].hit == true)
+		{
+			console.log("oh my ");
+			this.sprites.splice(i,1);
+			this.hit = !(this.hit);
+			
+		}
+		if(this.sprites[i].countFireball > 5)
+		{
+			this.sprites.splice(i,1);
+		}
+	}
+	
+}
+
+//Model.prototype.onclick = function(x, y)
+//{
+	//for(let i = 0; i < this.sprites.length; i++)
+	//{
+		//this.sprites[i].onclick(x, y);
+	//}
+//}
+
+Model.prototype.move = function(dx, dy)
+{
+	this.vegeta.move(dx, dy);
+}
+
+Model.prototype.throwball = function()
+{
+	this.sprites.push(new Sprite(this.vegeta.x , this.vegeta.y-40, "fireball.png",Sprite.prototype.fireballUpdate,this));
+}
+
+
+
+
+
+function View(model)
+{
+	this.model = model;
+	this.canvas = document.getElementById("myCanvas");
+	this.vegeta = new Image();
+	this.vegeta.src = "S5.png";
+}
+
+View.prototype.update = function()
+{
+	let ctx = this.canvas.getContext("2d");
+	ctx.clearRect(0, 0, 1000, 500);
+	for(let i = 0; i < this.model.sprites.length; i++)
+	{
+		let sprite = this.model.sprites[i];
+		if(i == 3 || i == 4 || i == 2)ctx.drawImage(sprite.image, sprite.x, sprite.y+99);
+		else ctx.drawImage(sprite.image, sprite.x, sprite.y);
+	}
+}
+
+
+
+
+
+
+
+
+
+function Controller(model, view)
+{
+	this.model = model;
+	this.view = view;
+	this.key_right = false;
+	this.key_left = false;
+	this.key_up = false;
+	this.key_down = false;
+	this.key_space = false;
+	this.key_f = false;
+	let self = this;
+	//view.canvas.addEventListener("click", function(event) { self.onClick(event); });
+	document.addEventListener('keydown', function(event) { self.keyDown(event); }, false);
+	document.addEventListener('keyup', function(event) { self.keyUp(event); }, false);
+}
+
+//Controller.prototype.onClick = function(event)
+//{
+	//this.model.onclick(event.pageX - this.view.canvas.offsetLeft, event.pageY - this.view.canvas.offsetTop);
+//}
+
+Controller.prototype.keyDown = function(event)
+{
+	if(event.keyCode == 39) this.key_right = true;
+	else if(event.keyCode == 37) this.key_left = true;
+	else if(event.keyCode == 32) this.key_space = true;
+	else if(event.keyCode == 38) this.key_up = true;
+	else if(event.keyCode == 40) this.key_down = true;
+	else if(event.keyCode == 70 || event.keyCode == 102) this.key_f = true;
+	
+}
+
+Controller.prototype.keyUp = function(event)
+{
+	if(event.keyCode == 39) this.key_right = false;
+	else if(event.keyCode == 37) this.key_left = false;
+	else if(event.keyCode == 32) {this.key_space = false; this.spaceTouch++;}
+	else if(event.keyCode == 38) this.key_up = false;
+	else if(event.keyCode == 40) this.key_down = false;
+	else if(event.keyCode == 70 || event.keyCode == 102) this.key_f = false;
+	
+}
+
+Controller.prototype.update = function()
+{
+	let dx = 0;
+	let dy = 0;
+	this.model.vegeta.prev_x = this.model.vegeta.x;
+	this.model.vegeta.prev_y = this.model.vegeta.y;
+	if(this.key_right)this.model.vegeta.x+=5;
+	if(this.key_left) this.model.vegeta.x-=5;
+	//if(this.key_space)this.model.vegeta.jump();
+	if((this.key_space || this.spaceTouch > 0)&& this.model.onGround<3 )
+	{
+		this.model.vegeta.jump();
+		this.model.vegeta.scapeTouch = 0;
+	}
+	if(this.key_f)this.model.throwball();
+}
+
+
+
+
+
+
+
+function Game()
+{
+	this.model = new Model();
+	this.view = new View(this.model);
+	this.controller = new Controller(this.model, this.view);
+}
+
+Game.prototype.onTimer = function()
+{
+	this.controller.update();
+	this.model.update();
+	this.view.update();
+}
+
+
+
+let game = new Game();
+let timer = setInterval(function() { game.onTimer(); }, 40);
+
+</script>
+
+</body>
